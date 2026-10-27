@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PeNA 2026 – Dashboard Pemantauan Akademik | Politeknik Kota Kinabalu</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy:#1F4E78;--navy-dark:#16375a;--navy-light:#2563a8;
+  --teal:#0d9488;--teal-light:#14b8a6;--teal-dim:#ccfbf1;
+  --white:#ffffff;--bg:#f0f4f8;--surface:#ffffff;
+  --border:#e2e8f0;--text:#1e293b;--muted:#64748b;
+  --green:#16a34a;--green-dim:#dcfce7;
+  --orange:#ea580c;--orange-dim:#ffedd5;
+  --red:#dc2626;--red-dim:#fee2e2;
+  --yellow:#ca8a04;--yellow-dim:#fef9c3;
+  --sidebar-w:240px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;font-size:14px;
+     background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+
+/* ─── LAYOUT ─── */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar-w);background:var(--navy);color:#fff;
+         display:flex;flex-direction:column;flex-shrink:0;position:fixed;
+         top:0;left:0;height:100vh;overflow-y:auto;z-index:100;
+         transition:transform .25s ease}
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);
+        padding:0 24px;height:56px;display:flex;align-items:center;
+        justify-content:space-between;position:sticky;top:0;z-index:50}
+.content{padding:24px;flex:1}
+
+/* ─── SIDEBAR ─── */
+.sidebar-logo{padding:20px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12)}
+.sidebar-logo .institution{font-size:10px;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.06em}
+.sidebar-logo .title{font-size:13px;font-weight:700;color:#fff;margin-top:2px;line-height:1.3}
+.sidebar-logo .badge{display:inline-block;background:var(--teal);color:#fff;
+                     font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;margin-top:5px}
+.nav-section{padding:12px 0 4px}
+.nav-label{font-size:10px;font-weight:600;color:rgba(255,255,255,.4);
+           text-transform:uppercase;letter-spacing:.08em;padding:0 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;
+          cursor:pointer;color:rgba(255,255,255,.75);font-size:13px;
+          border-left:3px solid transparent;transition:all .15s;text-decoration:none}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item.active{background:rgba(13,148,136,.25);border-left-color:var(--teal);color:#fff;font-weight:600}
+.nav-icon{width:16px;text-align:center;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:12px 16px;border-top:1px solid rgba(255,255,255,.1);
+                font-size:11px;color:rgba(255,255,255,.4)}
+
+/* ─── TOPBAR ─── */
+.topbar-left{display:flex;align-items:center;gap:12px}
+.menu-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;display:none}
+.page-title{font-size:15px;font-weight:600;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.demo-badge{background:#fef9c3;color:#854d0e;font-size:11px;font-weight:600;
+            padding:3px 10px;border-radius:12px;border:1px solid #fde68a}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--bg);
+           border-radius:20px;padding:5px 12px 5px 5px;cursor:pointer}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--navy);
+        color:#fff;display:flex;align-items:center;justify-content:center;
+        font-size:11px;font-weight:700}
+.user-info{font-size:12px;line-height:1.3}
+.user-name{font-weight:600;color:var(--text)}
+.user-role{color:var(--muted)}
+
+/* ─── PAGE SECTIONS (show/hide) ─── */
+.page{display:none}.page.active{display:block}
+
+/* ─── STAT CARDS ─── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border-radius:10px;padding:18px 20px;
+           border:1px solid var(--border);position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;border-radius:4px 0 0 4px}
+.stat-card.blue::before{background:var(--navy)}
+.stat-card.teal::before{background:var(--teal)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.orange::before{background:var(--orange)}
+.stat-card.red::before{background:var(--red)}
+.stat-card.yellow::before{background:var(--yellow)}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.stat-value{font-size:28px;font-weight:700;color:var(--text);line-height:1}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:5px}
+.stat-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);
+           font-size:28px;opacity:.12}
+
+/* ─── SECTION HEADER ─── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:15px;font-weight:700;color:var(--text)}
+.section-sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* ─── CHARTS ─── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.chart-card{background:var(--surface);border-radius:10px;padding:20px;border:1px solid var(--border)}
+.chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px}
+.chart-wrap{position:relative;height:200px}
+@media(max-width:700px){.charts-grid{grid-template-columns:1fr}}
+
+/* ─── SCOPE CARDS ─── */
+.scope-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:24px}
+.scope-card{background:var(--surface);border-radius:10px;padding:18px 20px;border:1px solid var(--border)}
+.scope-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.scope-code{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.06em}
+.scope-name{font-size:13px;font-weight:600;color:var(--text);margin-top:2px}
+.scope-monitor{font-size:11px;color:var(--muted);margin-top:2px}
+.progress-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin:10px 0 6px}
+.progress-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.progress-fill.blue{background:var(--navy)}
+.progress-fill.teal{background:var(--teal)}
+.progress-fill.green{background:var(--green)}
+.scope-stats{display:flex;gap:12px;font-size:11px;color:var(--muted)}
+.scope-stat span{font-weight:600;color:var(--text)}
+
+/* ─── FILTERS ─── */
+.filter-bar{background:var(--surface);border-radius:10px;padding:16px 20px;
+            border:1px solid var(--border);margin-bottom:16px;
+            display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.filter-group{display:flex;flex-direction:column;gap:4px;min-width:120px}
+.filter-group label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.filter-group select,.filter-group input{
+  padding:7px 10px;border:1px solid var(--border);border-radius:7px;
+  font-size:13px;color:var(--text);background:var(--surface);outline:none;
+  transition:border-color .15s}
+.filter-group select:focus,.filter-group input:focus{border-color:var(--teal)}
+.filter-group.wide{flex:1;min-width:200px}
+.btn{padding:8px 16px;border:none;border-radius:7px;font-size:13px;font-weight:600;
+     cursor:pointer;transition:opacity .15s}
+.btn-teal{background:var(--teal);color:#fff}.btn-teal:hover{opacity:.85}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--teal);color:var(--teal)}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+/* ─── TABLE ─── */
+.table-wrap{background:var(--surface);border-radius:10px;border:1px solid var(--border);overflow:hidden}
+.table-info{padding:12px 20px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse}
+th{background:#f8fafc;font-size:11px;font-weight:700;color:var(--muted);
+   text-transform:uppercase;letter-spacing:.05em;padding:10px 16px;
+   border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+td{padding:12px 16px;border-bottom:1px solid #f1f5f9;font-size:13px;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8fafc}
+.item-code{font-family:monospace;font-size:12px;font-weight:700;color:var(--navy);
+           background:#eff6ff;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.scope-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.tag-BK{background:#dbeafe;color:#1d4ed8}
+.tag-BIPD{background:#f3e8ff;color:#7e22ce}
+.tag-BPN{background:#fff7ed;color:#9a3412}
+.tag-BGK{background:#dcfce7;color:#166534}
+.tag-BPPI{background:#fef9c3;color:#854d0e}
+.status-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px;white-space:nowrap}
+.status-lengkap{background:var(--green-dim);color:var(--green)}
+.status-dalam_tindakan{background:var(--orange-dim);color:var(--orange)}
+.status-belum_serah{background:var(--red-dim);color:var(--red)}
+.status-perlu_semak{background:var(--yellow-dim);color:var(--yellow)}
+.status-temubual{background:#e0e7ff;color:#4338ca}
+.evidence-list{font-size:11px;color:var(--muted);list-style:none;padding:0;margin-top:4px}
+.evidence-list li::before{content:"✓ ";color:var(--teal)}
+.expand-btn{background:none;border:none;cursor:pointer;color:var(--teal);font-size:12px;white-space:nowrap}
+.detail-row{display:none;background:#f8fafc}
+.detail-row.open{display:table-row}
+.detail-cell{padding:12px 16px 16px 32px!important}
+.detail-section{margin-bottom:8px}
+.detail-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.rubrik-list{font-size:12px;color:var(--text)}
+.rubrik-list li{margin-bottom:2px}
+
+/* ─── WORKFLOW DEMO ─── */
+.workflow-card{background:var(--surface);border-radius:10px;border:1px solid var(--border);margin-bottom:16px}
+.wf-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.wf-title{font-size:14px;font-weight:600}
+.wf-body{padding:20px}
+.steps{display:flex;gap:0;margin-bottom:20px;overflow-x:auto}
+.step{flex:1;text-align:center;position:relative;min-width:90px}
+.step::after{content:'';position:absolute;top:16px;left:50%;width:100%;height:2px;background:var(--border);z-index:0}
+.step:last-child::after{display:none}
+.step-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+          justify-content:center;margin:0 auto 6px;font-size:13px;font-weight:700;
+          position:relative;z-index:1;border:2px solid var(--border);background:var(--surface)}
+.step.done .step-dot{background:var(--green);border-color:var(--green);color:#fff}
+.step.active .step-dot{background:var(--teal);border-color:var(--teal);color:#fff}
+.step.pending .step-dot{background:var(--surface);border-color:var(--border);color:var(--muted)}
+.step-label{font-size:11px;color:var(--muted);line-height:1.3}
+.step.active .step-label{color:var(--teal);font-weight:600}
+.step.done .step-label{color:var(--green)}
+.demo-notice{background:#fef9c3;border:1px solid #fde68a;border-radius:8px;
+             padding:12px 16px;font-size:12px;color:#854d0e;margin-bottom:16px}
+.demo-notice strong{display:block;margin-bottom:2px}
+.doc-list{display:grid;gap:10px}
+.doc-item{display:flex;align-items:center;gap:12px;padding:12px 16px;
+          background:#f8fafc;border-radius:8px;border:1px solid var(--border)}
+.doc-icon{width:36px;height:36px;border-radius:8px;background:var(--navy);
+          color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.doc-meta{flex:1;min-width:0}
+.doc-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-info{font-size:11px;color:var(--muted)}
+.doc-status{flex-shrink:0}
+.review-panel{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media(max-width:600px){.review-panel{grid-template-columns:1fr}}
+.review-box{background:#f8fafc;border-radius:8px;padding:14px 16px;border:1px solid var(--border)}
+.review-box-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.review-comment{width:100%;border:1px solid var(--border);border-radius:6px;
+                padding:8px 10px;font-size:13px;resize:vertical;min-height:80px;
+                font-family:inherit;outline:none}
+.review-comment:focus{border-color:var(--teal)}
+.action-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{opacity:.85}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{opacity:.85}
+.btn-yellow{background:var(--yellow);color:#fff}.btn-yellow:hover{opacity:.85}
+.result-msg{display:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-top:10px}
+
+/* ─── REPORT ─── */
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+.report-card{background:var(--surface);border-radius:10px;padding:18px 20px;border:1px solid var(--border)}
+.dept-table td:first-child{font-family:monospace;font-weight:700;color:var(--navy)}
+.pct-bar{height:6px;background:var(--border);border-radius:3px;margin-top:4px;overflow:hidden}
+.pct-fill{height:100%;border-radius:3px;background:var(--teal)}
+
+/* ─── UTILITY ─── */
+.text-muted{color:var(--muted)}
+.text-sm{font-size:12px}
+.mt-16{margin-top:16px}
+.mb-16{margin-bottom:16px}
+.flex-gap{display:flex;gap:8px;flex-wrap:wrap}
+.hidden{display:none!important}
+.no-results{text-align:center;padding:32px;color:var(--muted);font-size:13px}
+
+/* ─── MOBILE ─── */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .menu-btn{display:block}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .content{padding:16px}
+  th:nth-child(n+4),td:nth-child(n+4){display:none}
+  .review-panel{grid-template-columns:1fr}
+}
+@media(max-width:420px){.stat-grid{grid-template-columns:1fr}}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90}
+.overlay.open{display:block}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<div class="layout">
+
+<!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="institution">Politeknik Kota Kinabalu</div>
+    <div class="title">PeNA 2026<br>Monitoring Dashboard</div>
+    <span class="badge">PROTOTAIP FASA 1</span>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Utama</div>
+    <a class="nav-item active" onclick="showPage('dashboard',this)">
+      <span class="nav-icon">🏠</span> Dashboard Utama
+    </a>
+    <a class="nav-item" onclick="showPage('skop',this)">
+      <span class="nav-icon">📂</span> Skop Penilaian
+    </a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Pengurusan Item</div>
+    <a class="nav-item" onclick="showPage('senarai',this)">
+      <span class="nav-icon">📋</span> Senarai Item PeNA
+    </a>
+    <a class="nav-item" onclick="showPage('tugasan',this)">
+      <span class="nav-icon">👤</span> Tugasan PIC
+    </a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Dokumen</div>
+    <a class="nav-item" onclick="showPage('penghantaran',this)">
+      <span class="nav-icon">📤</span> Pengurusan Dokumen
+    </a>
+    <a class="nav-item" onclick="showPage('semakan',this)">
+      <span class="nav-icon">✅</span> Semakan Eviden
+    </a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Analitik</div>
+    <a class="nav-item" onclick="showPage('laporan',this)">
+      <span class="nav-icon">📊</span> Laporan &amp; Analisis
+    </a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Sistem</div>
+    <a class="nav-item" onclick="showPage('pengguna',this)">
+      <span class="nav-icon">⚙️</span> Tetapan Pengguna
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    Sesi Penilaian: Sesi 2 2025/2026<br>
+    Dikemas kini: Oktober 2026
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════ MAIN ═══════════════════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="page-title" id="pageTitle">Dashboard Utama</div>
+    </div>
+    <div class="topbar-right">
+      <span class="demo-badge">⚠ DATA DEMONSTRASI</span>
+      <div class="user-chip">
+        <div class="avatar">PA</div>
+        <div class="user-info">
+          <div class="user-name">Pn Azura</div>
+          <div class="user-role">Pentadbir</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══════════════════════ PAGE: DASHBOARD ══════════════════════ -->
+    <div class="page active" id="page-dashboard">
+
+      <div class="section-header">
+        <div>
+          <div class="section-title">Gambaran Keseluruhan PeNA 2026</div>
+          <div class="section-sub">Sesi 2 2025/2026 · Politeknik Kota Kinabalu</div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card blue">
+          <div class="stat-label">Jumlah Item</div>
+          <div class="stat-value" id="totalItems">52</div>
+          <div class="stat-sub">Merentas 5 skop penilaian</div>
+          <div class="stat-icon">📋</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Lengkap</div>
+          <div class="stat-value" id="totalLengkap">0</div>
+          <div class="stat-sub" id="pctLengkap">0% selesai</div>
+          <div class="stat-icon">✅</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-label">Dalam Tindakan</div>
+          <div class="stat-value" id="totalTindakan">0</div>
+          <div class="stat-sub">Sedang diproses</div>
+          <div class="stat-icon">🔄</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Belum Serah</div>
+          <div class="stat-value" id="totalBelum">0</div>
+          <div class="stat-sub">Perlu tindakan segera</div>
+          <div class="stat-icon">⚠️</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">Menunggu Semakan</div>
+          <div class="stat-value" id="totalSemak">0</div>
+          <div class="stat-sub">Hantar kepada pemantau</div>
+          <div class="stat-icon">🔍</div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-label">Item Temubual</div>
+          <div class="stat-value" id="totalTemubual">0</div>
+          <div class="stat-sub">Dinilai oleh auditor</div>
+          <div class="stat-icon">🎤</div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Status Keseluruhan</div>
+          <div class="chart-wrap"><canvas id="chartDonut"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Kemajuan per Skop</div>
+          <div class="chart-wrap"><canvas id="chartScope"></canvas></div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Status per Jabatan (8 Jabatan PIC)</div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chartDept"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Kaedah Penilaian</div>
+          <div class="chart-wrap"><canvas id="chartMethod"></canvas></div>
+        </div>
+      </div>
+
+    </div><!-- /page-dashboard -->
+
+    <!-- ══════════════════════ PAGE: SKOP ══════════════════════ -->
+    <div class="page" id="page-skop">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Skop Penilaian PeNA 2026</div>
+          <div class="section-sub">5 skop penilaian utama merentasi jabatan dan unit</div>
+        </div>
+      </div>
+      <div class="scope-grid" id="scopeCards"></div>
+    </div>
+
+    <!-- ══════════════════════ PAGE: SENARAI ITEM ══════════════════════ -->
+    <div class="page" id="page-senarai">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Senarai Item Penilaian PeNA 2026</div>
+          <div class="section-sub">Data diimport dari Senarai Semak PDF &amp; Excel (Oktober 2026)</div>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-group wide">
+          <label>Carian</label>
+          <input type="text" id="searchInput" placeholder="Cari kod item, perkara, PIC..." oninput="applyFilters()"/>
+        </div>
+        <div class="filter-group">
+          <label>Skop</label>
+          <select id="filterSkop" onchange="applyFilters()">
+            <option value="">Semua Skop</option>
+            <option value="BK">BK – Kurikulum</option>
+            <option value="BIPD">BIPD – Instruksional</option>
+            <option value="BPN">BPN – Peperiksaan</option>
+            <option value="BGK">BGK – Jaminan Kualiti</option>
+            <option value="BPPI">BPPI – Peralatan</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select id="filterStatus" onchange="applyFilters()">
+            <option value="">Semua Status</option>
+            <option value="lengkap">Lengkap</option>
+            <option value="dalam_tindakan">Dalam Tindakan</option>
+            <option value="belum_serah">Belum Serah</option>
+            <option value="perlu_semak">Menunggu Semakan</option>
+            <option value="temubual">Temubual</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Jabatan PIC</label>
+          <select id="filterJabatan" onchange="applyFilters()">
+            <option value="">Semua Jabatan</option>
+            <option value="JKA">JKA</option><option value="JKE">JKE</option>
+            <option value="JKM">JKM</option><option value="JP">JP</option>
+            <option value="JPH">JPH</option><option value="JPA">JPA</option>
+            <option value="JMSK">JMSK</option><option value="JSKK">JSKK</option>
+            <option value="UJK">UJK</option><option value="UPLI">UPLI</option>
+            <option value="SPAK">SPAK</option><option value="PPI">PPI</option>
+            <option value="FYP">FYP</option><option value="UIDM">UIDM</option>
+            <option value="WBL">WBL</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <button class="btn btn-teal" onclick="applyFilters()">Tapis</button>
+          <button class="btn btn-outline" onclick="resetFilters()">Tetap Semula</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-info" id="tableInfo">Memuatkan data...</div>
+        <div style="overflow-x:auto">
+        <table id="itemTable">
+          <thead>
+            <tr>
+              <th>Kod Item</th>
+              <th>Skop</th>
+              <th>Perkara</th>
+              <th>Pemantau</th>
+              <th>PIC Jabatan</th>
+              <th>Kaedah</th>
+              <th>Status</th>
+              <th>Butiran</th>
+            </tr>
+          </thead>
+          <tbody id="itemTableBody"></tbody>
+        </table>
+        </div>
+      </div>
+    </div><!-- /page-senarai -->
+
+    <!-- ══════════════════════ PAGE: TUGASAN PIC ══════════════════════ -->
+    <div class="page" id="page-tugasan">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Tugasan PIC – Pandangan Demonstrasi</div>
+          <div class="section-sub">Menunjukkan senarai tugasan yang akan dilihat oleh PIC selepas log masuk</div>
+        </div>
+      </div>
+      <div class="demo-notice">
+        <strong>⚠ MODE DEMONSTRASI</strong>
+        Halaman ini menunjukkan bagaimana PIC akan melihat tugasan mereka. Dalam sistem sebenar, kandungan disesuaikan berdasarkan log masuk pengguna, jabatan dan peranan yang ditetapkan oleh pentadbir.
+      </div>
+      <div class="filter-bar" style="margin-bottom:16px">
+        <div class="filter-group">
+          <label>Paparan Sebagai PIC</label>
+          <select id="picSelector" onchange="loadPicView()">
+            <option value="JKA">KPro JKA – Jabatan Kejuruteraan Awam</option>
+            <option value="JKE">KPro JKE – Jabatan Kejuruteraan Elektrik</option>
+            <option value="JKM">KPro JKM – Jabatan Kejuruteraan Mekanikal</option>
+            <option value="JPH">KPro JPH – Jabatan Perhotelan</option>
+            <option value="UPLI">Penyelaras UPLI – Unit Latihan Industri</option>
+            <option value="SPAK">Penyelaras SPAK – Sistem Penasihatan Akademik</option>
+          </select>
+        </div>
+      </div>
+      <div id="picTaskList"></div>
+    </div>
+
+    <!-- ══════════════════════ PAGE: PENGURUSAN DOKUMEN ══════════════════════ -->
+    <div class="page" id="page-penghantaran">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Pengurusan Dokumen – Aliran Kerja Demo</div>
+          <div class="section-sub">Demonstrasi proses muat naik dan penghantaran eviden</div>
+        </div>
+      </div>
+      <div class="demo-notice">
+        <strong>⚠ CIRI TIDAK BERFUNGSI – MEMERLUKAN BACKEND</strong>
+        Muat naik fail sebenar memerlukan pelayan Laravel, pangkalan data MySQL, dan storan fail yang selamat. Demo ini menunjukkan antaramuka dan aliran kerja yang akan digunakan.
+      </div>
+
+      <div class="workflow-card">
+        <div class="wf-header">
+          <div class="wf-title">📋 Item: BKA01 – Penerimaan Surat Pekeliling Kurikulum (SPK)</div>
+          <span class="status-badge status-perlu_semak">Menunggu Semakan</span>
+        </div>
+        <div class="wf-body">
+          <div class="steps">
+            <div class="step done"><div class="step-dot">✓</div><div class="step-label">PIC muat naik</div></div>
+            <div class="step done"><div class="step-dot">✓</div><div class="step-label">Dokumen dihantar</div></div>
+            <div class="step active"><div class="step-dot">3</div><div class="step-label">Menunggu semakan</div></div>
+            <div class="step pending"><div class="step-dot">4</div><div class="step-label">Pemantau nilai</div></div>
+            <div class="step pending"><div class="step-dot">5</div><div class="step-label">Selesai</div></div>
+          </div>
+
+          <div class="section-title text-sm mb-16">Keperluan Eviden (dari Senarai Semak PDF)</div>
+          <div class="doc-list" style="margin-bottom:16px">
+            <div class="doc-item">
+              <div class="doc-icon">📄</div>
+              <div class="doc-meta">
+                <div class="doc-name">SPK_BK_Sesi2_2025-2026.pdf <span style="color:var(--muted);font-size:11px">[Keperluan 1]</span></div>
+                <div class="doc-info">Surat SPK yang diminitkan · Dimuat naik: 20/10/2026 · Versi 1 · 245 KB</div>
+              </div>
+              <div class="doc-status"><span class="status-badge status-perlu_semak">Menunggu</span></div>
+            </div>
+            <div class="doc-item">
+              <div class="doc-icon">📄</div>
+              <div class="doc-meta">
+                <div class="doc-name">Memo_Dalaman_JKA_Hebahan.pdf <span style="color:var(--muted);font-size:11px">[Keperluan 2]</span></div>
+                <div class="doc-info">Memo dalaman hebahan ke jabatan · Dimuat naik: 20/10/2026 · Versi 1 · 120 KB</div>
+              </div>
+              <div class="doc-status"><span class="status-badge status-perlu_semak">Menunggu</span></div>
+            </div>
+          </div>
+
+          <div style="background:#f8fafc;border-radius:8px;padding:12px 16px;border:1px solid var(--border)">
+            <div class="detail-label">Rubrik Penilaian</div>
+            <div class="rubrik-list">
+              <li>3: Semua menerima SPK</li>
+              <li>2: Sebahagian menerima SPK</li>
+              <li>1: Tiada menerima SPK</li>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;padding:12px 16px;background:var(--orange-dim);border-radius:8px;border:1px solid #fed7aa">
+            <div class="detail-label" style="color:var(--orange)">Nota Ulasan PIC (JKA)</div>
+            <div class="text-sm">"Semua Ketua Program JKA telah menerima SPK. Memo edaran jabatan disertakan."</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--surface);border-radius:10px;border:1px solid var(--border);padding:18px 20px">
+        <div class="section-title text-sm mb-16">Muat Naik Dokumen Baru (Demonstrasi)</div>
+        <div style="border:2px dashed var(--border);border-radius:8px;padding:32px;text-align:center;color:var(--muted)">
+          <div style="font-size:32px;margin-bottom:8px">📁</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Seret &amp; Lepas fail di sini</div>
+          <div style="font-size:12px">PDF, DOCX, XLSX, JPG, PNG · Maks 10MB setiap fail</div>
+          <button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="alert('⚠ Muat naik fail memerlukan pelayan Laravel dan storan fail yang dikonfigurasi.\n\nCiri ini akan aktif dalam Fasa 2.')">Pilih Fail</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════ PAGE: SEMAKAN EVIDEN ══════════════════════ -->
+    <div class="page" id="page-semakan">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Semakan Eviden – Pandangan Pemantau</div>
+          <div class="section-sub">Demonstrasi aliran kerja semakan oleh pemantau skop</div>
+        </div>
+      </div>
+      <div class="demo-notice">
+        <strong>⚠ MODE DEMONSTRASI</strong>
+        Tindakan lulus/tolak dalam demo ini tidak menyimpan data. Dalam sistem sebenar, keputusan disimpan ke pangkalan data dan notifikasi dihantar kepada PIC berkenaan.
+      </div>
+
+      <div class="workflow-card">
+        <div class="wf-header">
+          <div>
+            <div class="wf-title">Semakan: BIPDA02 – Mesyuarat Pengurusan Akademik</div>
+            <div class="text-sm text-muted" style="margin-top:3px">PIC: UJK (Pn Kamiliah) · JKA, JKE, JKM, JP, JPH, JPA, JMSK, JSKK</div>
+          </div>
+          <span class="status-badge status-dalam_tindakan">Dalam Tindakan</span>
+        </div>
+        <div class="wf-body">
+          <div class="steps" style="margin-bottom:20px">
+            <div class="step done"><div class="step-dot">✓</div><div class="step-label">PIC hantar</div></div>
+            <div class="step active"><div class="step-dot">2</div><div class="step-label">Pemantau semak</div></div>
+            <div class="step pending"><div class="step-dot">3</div><div class="step-label">Keputusan</div></div>
+            <div class="step pending"><div class="step-dot">4</div><div class="step-label">Selesai</div></div>
+          </div>
+
+          <div class="doc-list" style="margin-bottom:16px">
+            <div class="doc-item">
+              <div class="doc-icon">📄</div>
+              <div class="doc-meta">
+                <div class="doc-name">Memo_Panggilan_Mesyuarat_Akademik.pdf</div>
+                <div class="doc-info">Memo panggilan mesyuarat · Dimuat naik: 22/10/2026 · Versi 1</div>
+              </div>
+              <div class="doc-status"><button class="btn btn-outline btn-sm" onclick="alert('Dalam sistem sebenar: buka fail PDF untuk semakan')">Lihat</button></div>
+            </div>
+            <div class="doc-item">
+              <div class="doc-icon">📄</div>
+              <div class="doc-meta">
+                <div class="doc-name">Minit_Mesyuarat_Pengurusan_Akademik_Sesi2.pdf</div>
+                <div class="doc-info">Minit mesyuarat · Dimuat naik: 22/10/2026 · Versi 1</div>
+              </div>
+              <div class="doc-status"><button class="btn btn-outline btn-sm" onclick="alert('Dalam sistem sebenar: buka fail PDF untuk semakan')">Lihat</button></div>
+            </div>
+          </div>
+
+          <div style="background:#fef9c3;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#854d0e">
+            <strong>Nota dari senarai semak PDF:</strong> "Panel pena: JKA tidak sertakan maklum balas, JKE (DTK) tiada maklum balas, JP, JPA, DHM, KHK, JSKK tiada maklum balas minit mesyuarat. CQI: Akan diselaraskan maklumbalas minit mesyuarat untuk semua program."
+          </div>
+
+          <div class="review-panel">
+            <div class="review-box">
+              <div class="review-box-title">Keputusan Semakan</div>
+              <div style="margin-bottom:8px;font-size:12px;color:var(--muted)">Pilih skor rubrik:</div>
+              <select style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-bottom:12px" id="skorInput">
+                <option value="">-- Pilih Skor --</option>
+                <option value="3">3 – Semua peringkat ada mesyuarat + minit + maklum balas</option>
+                <option value="2">2 – Ada mesyuarat tapi tiada minit/maklum balas</option>
+                <option value="1">1 – Tiada mesyuarat dijalankan</option>
+              </select>
+              <div class="action-btns">
+                <button class="btn btn-green btn-sm" onclick="submitReview('lulus')">✓ Lulus</button>
+                <button class="btn btn-yellow btn-sm" onclick="submitReview('pembetulan')">✎ Perlu Pembetulan</button>
+                <button class="btn btn-red btn-sm" onclick="submitReview('tolak')">✕ Tolak</button>
+              </div>
+              <div class="result-msg" id="reviewResult"></div>
+            </div>
+            <div class="review-box">
+              <div class="review-box-title">Ulasan Pemantau</div>
+              <textarea class="review-comment" id="reviewComment" placeholder="Tulis ulasan spesifik untuk PIC... (wajib jika Perlu Pembetulan atau Tolak)"></textarea>
+              <div class="text-sm text-muted" style="margin-top:6px">Ulasan akan dihantar sebagai notifikasi kepada PIC.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════ PAGE: LAPORAN ══════════════════════ -->
+    <div class="page" id="page-laporan">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Laporan &amp; Analisis PeNA 2026</div>
+          <div class="section-sub">Ringkasan kemajuan penghantaran dan status penilaian</div>
+        </div>
+      </div>
+
+      <div class="report-grid" id="reportStats"></div>
+
+      <div class="charts-grid" style="margin-top:0">
+        <div class="chart-card">
+          <div class="chart-title">Pecahan Status per Skop</div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chartReport1"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Bilangan Item per Skop</div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chartReport2"></canvas></div>
+        </div>
+      </div>
+
+      <div class="table-wrap mt-16">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <div class="section-title text-sm">Status per Jabatan PIC</div>
+          <div class="flex-gap">
+            <button class="btn btn-outline btn-sm" onclick="alert('Eksport Excel memerlukan pakej Laravel Excel (Fasa 2)')">📥 Eksport Excel</button>
+            <button class="btn btn-outline btn-sm" onclick="alert('Eksport PDF memerlukan pakej DomPDF (Fasa 2)')">📄 Eksport PDF</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+        <table class="dept-table">
+          <thead>
+            <tr>
+              <th>Jabatan</th>
+              <th>Nama Penuh</th>
+              <th>Item Berkaitan</th>
+              <th>Lengkap</th>
+              <th>Dalam Tindakan</th>
+              <th>Belum Serah</th>
+              <th>% Selesai</th>
+            </tr>
+          </thead>
+          <tbody id="deptTableBody"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════ PAGE: TETAPAN PENGGUNA ══════════════════════ -->
+    <div class="page" id="page-pengguna">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Tetapan Pengguna &amp; Keselamatan</div>
+          <div class="section-sub">Pengurusan akaun dan peranan pengguna sistem</div>
+        </div>
+      </div>
+      <div class="demo-notice">
+        <strong>⚠ CIRI TIDAK BERFUNGSI – MEMERLUKAN BACKEND</strong>
+        Pengurusan pengguna, kata laluan, dan peranan memerlukan sistem pengesahan Laravel Breeze dan pakej Spatie Laravel Permission. Ciri ini akan aktif dalam Fasa 2.
+      </div>
+
+      <div class="table-wrap">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <div class="section-title text-sm">Pengguna Demo (Data Contoh)</div>
+          <button class="btn btn-teal btn-sm" onclick="alert('Tambah pengguna memerlukan pangkalan data (Fasa 2)')">+ Tambah Pengguna</button>
+        </div>
+        <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr><th>Nama</th><th>Peranan</th><th>Jabatan/Skop</th><th>Emel</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Pn Azura</td><td><span class="status-badge" style="background:#dbeafe;color:#1d4ed8">Pentadbir</span></td><td>Pemantau – BK</td><td>azura@pkk.edu.my</td><td><span class="status-badge status-lengkap">Aktif</span></td></tr>
+            <tr><td>Pn Melin</td><td><span class="status-badge" style="background:#f3e8ff;color:#7e22ce">Pemantau Skop</span></td><td>Pemantau – BIPD</td><td>melin@pkk.edu.my</td><td><span class="status-badge status-lengkap">Aktif</span></td></tr>
+            <tr><td>Pn Ainiezea</td><td><span class="status-badge" style="background:#f3e8ff;color:#7e22ce">Pemantau Skop</span></td><td>Pemantau – BPN</td><td>ainiezea@pkk.edu.my</td><td><span class="status-badge status-lengkap">Aktif</span></td></tr>
+            <tr><td>Tuan Rakiza</td><td><span class="status-badge" style="background:#f3e8ff;color:#7e22ce">Pemantau Skop</span></td><td>Pemantau – BGK</td><td>rakiza@pkk.edu.my</td><td><span class="status-badge status-lengkap">Aktif</span></td></tr>
+            <tr><td>En Lucian</td><td><span class="status-badge" style="background:#f3e8ff;color:#7e22ce">Pemantau Skop</span></td><td>Pemantau – BPPI</td><td>lucian@pkk.edu.my</td><td><span class="status-badge status-lengkap">Aktif</span></td></tr>
+            <tr><td>Pn Rakizah</td><td><span class="status-badge" style="background:#dcfce7;color:#166534">Auditor</span></td><td>Auditor Dalaman</td><td>rakizah@pkk.edu.my</td><td><span class="status-badge status-lengkap">Aktif</span></td></tr>
+            <tr><td>En Zulhasnan</td><td><span class="status-badge" style="background:#dcfce7;color:#166534">Auditor</span></td><td>Auditor Dalaman</td><td>zulhasnan@pkk.edu.my</td><td><span class="status-badge status-lengkap">Aktif</span></td></tr>
+            <tr><td>KPro JKA</td><td><span class="status-badge" style="background:var(--orange-dim);color:var(--orange)">PIC</span></td><td>JKA</td><td>kpro.jka@pkk.edu.my</td><td><span class="status-badge status-lengkap">Aktif</span></td></tr>
+            <tr><td>KPro JKE</td><td><span class="status-badge" style="background:var(--orange-dim);color:var(--orange)">PIC</span></td><td>JKE</td><td>kpro.jke@pkk.edu.my</td><td><span class="status-badge status-lengkap">Aktif</span></td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  DATA – Diimport dari dokumen asal (PDF Senarai Semak + Excel)
+//  Sumber: SENARAI SEMAK ITEM PENILAIAN PENA 2026 (1).pdf
+//          status_penghantaran_dokumen_PeNA_2026_OKT 2026.xlsx
+// ═══════════════════════════════════════════════════════════════
+const SKOP_DATA = [
+  {kod:'BK',  nama:'Bahagian Kurikulum',                       pemantau:'Pn Azura',                   warna:'#1d4ed8', items:10},
+  {kod:'BIPD',nama:'Instruksional & Pembelajaran Digital',      pemantau:'Pn Melin & Limi Chong',      warna:'#7e22ce', items:19},
+  {kod:'BPN', nama:'Peperiksaan & Penilaian',                   pemantau:'Ainiezea',                   warna:'#9a3412', items:9},
+  {kod:'BGK', nama:'Jaminan Kualiti',                           pemantau:'Tuan Rakiza & Suzieyani',    warna:'#166534', items:10},
+  {kod:'BPPI',nama:'Peralatan & Infrastruktur Akademik',        pemantau:'En Lucian',                  warna:'#854d0e', items:9},
+];
+
+const JABATAN_DATA = [
+  {kod:'JKA', nama:'Jabatan Kejuruteraan Awam'},
+  {kod:'JKE', nama:'Jabatan Kejuruteraan Elektrik'},
+  {kod:'JKM', nama:'Jabatan Kejuruteraan Mekanikal'},
+  {kod:'JP',  nama:'Jabatan Perdagangan'},
+  {kod:'JPH', nama:'Jabatan Perhotelan'},
+  {kod:'JPA', nama:'Jabatan Perakaunan'},
+  {kod:'JMSK',nama:'Jabatan Matematik & Sains Komputer'},
+  {kod:'JSKK',nama:'Jabatan Seni Kulinari & Katering'},
+];
+
+// Status dari Excel (Oktober 2026): Lengkap=L, DalamTindakan=D, BelumSerah=B, PerluSemak=P, Temubual=T
+const ITEMS = [
+  // ─── SKOP BK ───
+  {id:'BK-01', kod:'BKA01', skop:'BK', perkara:'Penerimaan Surat Pekeliling Kurikulum (SPK) oleh Pegawai Kualiti/Ketua Program/Kursus', pemantau:'Pn Azura', pic:'Semua KPro (JKA,JKE,JKM,JPH,JP,JPA,JMSK,JSKK)', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'lengkap', skor:3.0, bukti:['Surat SPK yang diminitkan','Memo dalaman hebahan ke jabatan/program dari PQ ke program'], rubrik:['3: Semua menerima SPK','2: Sebahagian menerima SPK','1: Tiada menerima SPK'], nota:''},
+  {id:'BK-02', kod:'BKA02', skop:'BK', perkara:'Pensyarah menunjukkan akses terhadap Maklumat Program (SPMP/iPUO/CCMS)', pemantau:'Pn Rakizah (Auditor)', pic:'Semua KPro (JKA,JKE,JKM,JPH,JP,JPA,JMSK,JSKK)', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'temubual', status:'temubual', skor:null, bukti:['Borang Penilaian Temu Bual PeNA (Skop Kurikulum): https://bit.ly/TemplateTemubual_Kurikulum','Koleksi Soalan Temu bual PeNA: https://bit.ly/Soalan_TemubualPeNA'], rubrik:['3: Semua responden ada akses','2: Sebahagian ada akses','1: Tiada akses'], nota:'Temubual akan dilaksanakan sepanjang Oktober oleh Auditor Dalaman Pn Rakizah & En Zulhasnan'},
+  {id:'BK-03', kod:'BKA03', skop:'BK', perkara:'Pensyarah menunjukkan akses terhadap Maklumat Kursus/Course Information berkuatkuasa daripada sumber rasmi (SPMP)', pemantau:'Pn Rakizah (Auditor)', pic:'Ketua Program/Kursus/Pensyarah berkaitan', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'temubual', status:'temubual', skor:null, bukti:['Platform SPMP/iPUO/CCMS','Borang Penilaian Temu Bual PeNA (Skop Kurikulum)'], rubrik:['3: Semua responden ada akses','2: Sebahagian ada akses','1: Tiada akses'], nota:'Memastikan dokumen yang digunakan konsisten dengan SPK yang telah disemak dalam Item A:01'},
+  {id:'BK-04', kod:'BKB01', skop:'BK', perkara:'Ketua Jabatan/Program melaksanakan interpretasi kurikulum (bengkel/taklimat) mengikut perubahan dokumen kurikulum kepada pensyarah', pemantau:'Pn Azura', pic:'Semua Ketua Jabatan/Program', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'lengkap', skor:3.0, bukti:['Surat/memo panggilan/minit mesyuarat','Bahan bengkel (slaid/nota)','Senarai kehadiran (semua pensyarah)','Laporan/Senarai kehadiran'], rubrik:['3: Semua KJ/Program laksana aktiviti','2: Sebahagian laksana','1: Tiada aktiviti'], nota:'CQI: Interpretasi kurikulum perlu dilaksanakan setiap tahun oleh KP masing-masing'},
+  {id:'BK-05', kod:'BKB02', skop:'BK', perkara:'Ketua Jabatan/Program/Pensyarah menerangkan hubungkait PAi, PEO, PLO, CLO dengan PdP dan pentaksiran (constructive alignment)', pemantau:'Pn Rakizah (Auditor)', pic:'Semua KJ/KPro/Pensyarah', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'temubual', status:'temubual', skor:null, bukti:['Borang Penilaian Temu Bual PeNA (Skop Kurikulum)','Koleksi Soalan Temu bual PeNA'], rubrik:['3: Semua dapat terangkan dengan baik','2: Sebahagian dapat terangkan','1: Tiada yang dapat terangkan'], nota:''},
+  {id:'BK-06', kod:'BKB03', skop:'BK', perkara:'Ketua Jabatan/Program/Pensyarah menerangkan konsep dan implementasi OBE', pemantau:'Pn Rakizah (Auditor)', pic:'Semua KJ/KPro/Pensyarah', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'temubual', status:'temubual', skor:null, bukti:['Borang Penilaian Temu Bual PeNA (Skop Kurikulum)'], rubrik:['3: Semua dapat terangkan dengan baik','2: Sebahagian dapat terangkan','1: Tiada yang dapat terangkan'], nota:''},
+  {id:'BK-07', kod:'BKB04', skop:'BK', perkara:'Ketua Program menerangkan hubungkait Dublin Knowledge Profile/Kluster MQA/Technology Profile/Graduate Attribute dengan kursus dalam struktur program', pemantau:'Pn Rakizah (Auditor)', pic:'Semua Ketua Program', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'temubual', status:'temubual', skor:null, bukti:['Borang Penilaian Temu Bual PeNA (Skop Kurikulum)','Cadangan soalan temubual bagi Kluster Hasil Pembelajaran MQF'], rubrik:['3: Semua Ketua Program dapat terangkan','2: Sebahagian dapat terangkan','1: Tiada yang dapat terangkan'], nota:'*Program kejuruteraan bawah BEM **Program bukan kejuruteraan bawah MQA ***Program teknologi bawah TTAC'},
+  {id:'BK-08', kod:'BKB05', skop:'BK', perkara:'Pensyarah menerangkan hubungkait Dublin Knowledge Profile/Kluster MQA dengan kandungan kursus', pemantau:'Pn Rakizah (Auditor)', pic:'Semua Pensyarah', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'temubual', status:'temubual', skor:null, bukti:['Borang Penilaian Temu Bual PeNA (Skop Kurikulum)'], rubrik:['3: Semua pensyarah dapat terangkan','2: Sebahagian dapat terangkan','1: Tiada dapat terangkan'], nota:''},
+  {id:'BK-09', kod:'BKC01', skop:'BK', perkara:'Peratus maklum balas kursus diterima dari SEMUA jabatan induk di platform Sistem Maklum Balas Kurikulum (SMBK)', pemantau:'Pn Azura', pic:'Semua KPro/Penyelaras Kurikulum Jabatan', jabatan:['JKA','JKE','JKM','JP','JPH'], kaedah:'dokumen', status:'lengkap', skor:1.0, bukti:['Rumusan maklum balas dari SMBK (disediakan oleh KPro)','Senarai kursus bagi setiap program','Data rumusan maklum balas dari sesi 1 dan sesi 2 2025/2026'], rubrik:['3: 31–51% kursus ada maklum balas','2: 16–30% kursus ada maklum balas','1: 1–15% kursus ada maklum balas'], nota:'Maklum balas semua program sesi 2 2025/2026'},
+  {id:'BK-10', kod:'BKC02', skop:'BK', perkara:'Institusi mendapatkan maklum balas kurikulum daripada pemegang taruh (industri, alumni, ahli akademik) serta memanjangkan ke Bahagian Kurikulum via PFRS', pemantau:'Pn Azura', pic:'Semua KPro/IAP Jabatan/UJK', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'lengkap', skor:3.0, bukti:['Minit Mesyuarat bersama Penasihat Industri (IAP)','Laporan Pertandingan Projek Akhir Pelajar','Bukti pautan PFRS','Borang maklum balas','Surat jemputan'], rubrik:['3: 3 atau lebih pemegang taruh, dihantar ke BK','2: 1–2 pemegang taruh, dihantar ke BK','1: Tiada maklum balas/tidak dihantar'], nota:'CQI: KP/Penyelaras IAP perlu bersama pegawai kualiti untuk key in dalam sistem PFRS'},
+
+  // ─── SKOP BIPD ───
+  {id:'BIPD-01', kod:'BIPDA01', skop:'BIPD', perkara:'Carta Organisasi Akademik dikemaskini & dipamerkan di peringkat Jabatan dan peringkat program/unit', pemantau:'Pn Melin/Limi (UJK-Pn Kamiliah)', pic:'UJK, JKA, JKE, JKM, JP, JPH, JPA, JMSK, JSKK', jabatan:['UJK','JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Carta organisasi PKK','Carta organisasi jabatan','Carta organisasi program (yang dikemaskini)'], rubrik:['3: Semua peringkat ada, dikemaskini & dipamerkan','2: Ada tetapi tidak lengkap (tiada tarikh kemaskini/dipamerkan)','1: Tiada carta organisasi'], nota:''},
+  {id:'BIPD-02', kod:'BIPDA02', skop:'BIPD', perkara:'Mesyuarat Pengurusan Akademik (Institusi, Jabatan, Program) beserta minit & maklum balas', pemantau:'Pn Melin/Limi (UJK-Pn Kamiliah)', pic:'UJK, JKA, JKE, JKM, JP, JPH, JPA, JMSK, JSKK', jabatan:['UJK','JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Memo panggilan mesyuarat','Minit mesyuarat','Maklumbalas minit mesyuarat Pengurusan Akademik, Jabatan & Program'], rubrik:['3: Semua peringkat ada mesyuarat + minit + maklum balas','2: Ada mesyuarat tapi tiada minit/maklum balas','1: Tiada mesyuarat dijalankan'], nota:'Panel: JKA tidak sertakan maklum balas, JKE(DTK) tiada maklum balas. CQI: Akan diselaraskan'},
+  {id:'BIPD-03', kod:'BIPDA03', skop:'BIPD', perkara:'Institusi mempunyai Jawatankuasa Penasihat Program/Industri beserta surat lantikan & terma rujukan', pemantau:'Pn Melin/Limi (IAP Politeknik-Nasri)', pic:'IAP Politeknik, JKA, JKE, JKM, JP, JPH', jabatan:['IAP','JKA','JKE','JKM','JP','JPH'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Surat lantikan IAP','Rujukan dan terma','CV IAP'], rubrik:['3: Ada jawatankuasa + surat lantikan + terma rujukan','2: Ada jawatankuasa tapi tiada surat/terma rujukan','1: Tiada jawatankuasa'], nota:''},
+  {id:'BIPD-04', kod:'BIPDA04', skop:'BIPD', perkara:'Institusi mengadakan mesyuarat Jawatankuasa Penasihat Program/Industri beserta minit & maklum balas', pemantau:'Pn Melin/Limi (IAP Politeknik-Nasri)', pic:'IAP Politeknik, JKA, JKE, JKM, JP, JPH', jabatan:['IAP','JKA','JKE','JKM','JP','JPH'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Surat panggilan mesyuarat','Minit mesyuarat','Maklumbalas minit mesyuarat'], rubrik:['3: Semua program buat mesyuarat + ada minit & maklum balas','2: Sebahagian buat mesyuarat + ada minit & maklum balas','1: Tiada mesyuarat'], nota:'Panel: Program DEM tiada minit dan maklum balas. CQI: memberi link direct ke sistem ipena bermula 2026'},
+  {id:'BIPD-05', kod:'BIPDB01', skop:'BIPD', perkara:'Institusi menyediakan Takwim PdP yang diluluskan pengurusan dan melaksanakan aktiviti mengikut perancangan', pemantau:'Pn Melin/Limi (UJK-Pn Kamiliah)', pic:'UJK, semua jabatan', jabatan:['UJK','JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Takwim PdP/Akademik yang disahkan','3 bukti perlaksanaan mengikut takwim'], rubrik:['3: Ada & diluluskan + semua aktiviti ikut takwim','2: Ada tapi tiada kelulusan','1: Ada & diluluskan tapi aktiviti tidak ikut takwim'], nota:'Data sepanjang tahun 2026 dan terkini'},
+  {id:'BIPD-06', kod:'BIPDB02', skop:'BIPD', perkara:'Pensyarah menyediakan Fail Rekod Pensyarah (FRP/iFRP) dan semakan dibuat mengikut perancangan dalam Takwim PdP', pemantau:'Pn Melin/Limi', pic:'Ketua Jabatan/Ketua Program/Pensyarah', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Borang pengesahan semakan iFRP oleh KP (list dari SPMP)','Borang pengesahan eFRP'], rubrik:['3: Semua pensyarah sedia FRP + semakan ikut takwim','2: Sebahagian pensyarah sedia FRP','1: Semua sedia FRP tapi semakan tak ikut takwim'], nota:'Panel: Program DKA tiada dokumen semakan mengikut takwim. CQI: Semua KJ/Kpro perlu membuat pengesahan dan semakan'},
+  {id:'BIPD-07', kod:'BIPDB03', skop:'BIPD', perkara:'Pensyarah menyediakan rancangan mengajar mengikut keperluan Garis Panduan berkuatkuasa', pemantau:'Pn Melin/Limi', pic:'Ketua Program/Pensyarah', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['RM bagi sesi 2 2025/2026 (setiap pensyarah upload 1 RM)','RM perlu mengikut GP'], rubrik:['3: Semua pensyarah sediakan RM ikut garis panduan','2: Sebahagian pensyarah sediakan RM','1: Semua sediakan RM tapi tak ikut garis panduan'], nota:'Panel: SEMUA pensyarah menyediakan RM tetapi terdapat sebahagian TIDAK MENGIKUT keperluan GP. CQI BIPD: Template Senarai Semak RM: https://bit.ly/TemplateSemakan_RM'},
+  {id:'BIPD-08', kod:'BIPDB04', skop:'BIPD', perkara:'Institusi melaksanakan pemantauan PdP pensyarah mengikut Garis Panduan berkuatkuasa dan menyediakan laporan pemantauan', pemantau:'Pn Melin/Limi (Pn Adel-PDP)', pic:'Penyelaras Pemantauan PdP (Pn Adel)', jabatan:['PDP','JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Jadual perancangan pemantauan PdP setiap jabatan','Laporan pemantauan PdP 2025-2026'], rubrik:['3: Pemantauan dilaksana + laporan lengkap','2: Pemantauan dilaksana tapi tiada laporan/tak lengkap','1: Tiada pemantauan dilaksana'], nota:''},
+  {id:'BIPD-09', kod:'BIPDB05', skop:'BIPD', perkara:'Hasil dapatan pemantauan PdP pensyarah dibincangkan dalam mesyuarat pengurusan akademik dan tindakan penambahbaikan dilaksanakan', pemantau:'Pn Melin/Limi (Pn Adel-PDP)', pic:'Penyelaras Pemantauan PdP (Pn Adel)', jabatan:['PDP','JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Memo mesyuarat','Minit mesyuarat pengurusan akademik yang membincangkan CQI pemantauan PdP','Maklumbalas mesyuarat'], rubrik:['3: Dibincang & tindakan penambahbaikan dilaksana','2: Dibincang tapi tiada tindakan','1: Tidak dibincang'], nota:''},
+  {id:'BIPD-10', kod:'BIPDC01', skop:'BIPD', perkara:'Institusi menyediakan Takwim Unit Perhubungan LI yang diluluskan pengurusan dan melaksanakan aktiviti mengikut perancangan', pemantau:'Pn Melin/Limi (UPLI-Pn Mardina/Clayrina)', pic:'UPLI – Pn Mardina/Clayrina', jabatan:['UPLI'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Takwim UPLI yang disahkan'], rubrik:['3: Ada & diluluskan + aktiviti ikut perancangan','2: Tiada disediakan','1: Ada & diluluskan tapi aktiviti tidak ikut perancangan'], nota:'Data sepanjang tahun 2025 dan 2026'},
+  {id:'BIPD-11', kod:'BIPDC02', skop:'BIPD', perkara:'Pemantauan pelajar LI dilaksanakan mengikut agihan jadual lawatan pemantauan beserta laporan lengkap', pemantau:'Pn Melin/Limi (UPLI-Pn Mardina/Clayrina)', pic:'UPLI – Pn Mardina/Clayrina', jabatan:['UPLI'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Jadual lawatan pemantauan','Laporan pemantauan LI'], rubrik:['3: Ada jadual + pemantauan dilaksana + laporan lengkap','2: Ada pemantauan tapi tiada jadual','1: Ada jadual + pemantauan tapi tiada laporan/tak lengkap'], nota:''},
+  {id:'BIPD-12', kod:'BIPDC03', skop:'BIPD', perkara:'Pegawai LI menyediakan analisis pelaksanaan kursus latihan industri: laporan pencapaian, laporan maklum balas industri, laporan analisis CLO', pemantau:'Pn Melin/Limi (UPLI-Pn Mardina/Clayrina)', pic:'UPLI – Pn Mardina/Clayrina', jabatan:['UPLI'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Laporan pencapaian kursus latihan industri','Laporan maklum balas industri','Laporan analisis CLO kursus latihan industri'], rubrik:['3: Ada semua laporan (pencapaian, maklum balas, analisis CLO)','2: Ada 2 daripada 3 laporan','1: Ada 1 daripada 3 laporan'], nota:''},
+  {id:'BIPD-13', kod:'BIPDD01', skop:'BIPD', perkara:'Penasihat Akademik menyediakan Fail Penasihat Akademik mengikut perancangan (SPAk)', pemantau:'Pn Melin/Limi (Pn Cherry-SPAK)', pic:'Penyelaras SPAk – Pn Cherry', jabatan:['SPAK','JKA','JKE','JKM','JP','JPH'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Takwim SPAK yang telah disahkan','Laporan Pemantauan SPAk Minggu 8 & Minggu 14','Laporan keberkesanan penilaian SPAK bagi sesi 2 2025/2026'], rubrik:['3: Fail disediakan & dikemaskini ikut perancangan','2: Fail disediakan tetapi tidak dikemaskini','1: Tiada fail disediakan'], nota:''},
+  {id:'BIPD-14', kod:'BIPDD02', skop:'BIPD', perkara:'Pelaksanaan taklimat Sistem Penasihatan Akademik (SPAk) kepada semua PA setiap semester beserta laporan pelaksanaan', pemantau:'Pn Melin/Limi (Pn Cherry-SPAK)', pic:'Penyelaras SPAk – Pn Cherry', jabatan:['SPAK','JKA','JKE','JKM','JP','JPH'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Memo panggilan','Kehadiran','Slaid/laporan taklimat'], rubrik:['3: Taklimat dilaksanakan setiap semester & ada laporan aktiviti','2: Taklimat dilaksanakan tetapi tiada laporan','1: Tiada taklimat dilaksanakan'], nota:''},
+  {id:'BIPD-15', kod:'BIPDD03', skop:'BIPD', perkara:'Laporan CQI SPAk berdasarkan pemantauan Minggu 8 & 14 dibentangkan di Jawatankuasa SPAk Politeknik', pemantau:'Pn Melin/Limi (Pn Cherry-SPAK)', pic:'Penyelaras SPAk – Pn Cherry', jabatan:['SPAK'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Memo mesyuarat','Minit mesyuarat','Laporan analisa pemantauan Sistem Penasihatan Akademik Politeknik'], rubrik:['3: Laporan disediakan dan dibentang dalam mesyuarat','2: Laporan disediakan tetapi tidak dibentang','1: Tiada laporan disediakan'], nota:''},
+  {id:'BIPD-16', kod:'BIPDE01', skop:'BIPD', perkara:'Institusi mempunyai perancangan dan pelan tindakan pelaksanaan PPI yang disahkan oleh TP(A)/TP', pemantau:'Pn Melin/Limi (Pn Suraya-PPI)', pic:'Penyelaras PPI – Pn Suraya', jabatan:['PPI','JKA','JKE','JKM','JP','JPH'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Jadual perancangan PPI yang disahkan','Laporan PPI keseluruhan'], rubrik:['3: Perancangan & pelan tindakan lengkap + disahkan oleh TP(A)/TP','2: Ada pelan tindakan tetapi tiada pengesahan rasmi','1: Tiada disediakan'], nota:'Semua program perlu mencapai 100% pencapaian jumlah jam interaksi'},
+  {id:'BIPD-17', kod:'BIPDE02', skop:'BIPD', perkara:'Penyediaan pelaporan pencapaian aktiviti PPI dilaksanakan bagi setiap Program', pemantau:'Pn Melin/Limi (Pn Suraya-PPI)', pic:'Penyelaras PPI – Pn Suraya', jabatan:['PPI','JKA','JKE','JKM','JP','JPH'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Jadual perancangan PPI setiap program','Bukti laporan pencapaian aktiviti PPI (summary setiap program)'], rubrik:['3: Laporan pencapaian lengkap semua program','2: Laporan hanya sebahagian program','1: Tiada laporan disediakan'], nota:''},
+  {id:'BIPD-18', kod:'BIPDG01', skop:'BIPD', perkara:'Institusi mempunyai struktur organisasi e-pembelajaran terkini yang diluluskan oleh pihak pengurusan', pemantau:'Pn Melin/Limi (UIDM-Pn Hidayah)', pic:'UIDM – Pn Hidayah (PEL)', jabatan:['UIDM'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Carta Organisasi e-pembelajaran yang dikemaskini'], rubrik:['3: Struktur organisasi ada & diluluskan pengurusan','2: Struktur organisasi ada tapi tidak diluluskan','1: Tiada struktur organisasi e-Pembelajaran'], nota:''},
+  {id:'BIPD-19', kod:'BIPDF01', skop:'BIPD', perkara:'Institusi/Jabatan menyediakan takwim projek pelajar tahun akhir (FYP) yang diluluskan pengurusan dan melaksanakan aktiviti mengikut perancangan', pemantau:'Pn Melin/Limi (Dr Farah-FYP)', pic:'Penyelaras Projek Akhir – Dr Farah', jabatan:['FYP','JKA','JKE','JKM','JP','JPH'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Takwim projek pelajar yang disahkan KJ/TPA sesi 2 2025/2026','Gantt chart projek 1 & 2','3 bukti perlaksanaan aktiviti'], rubrik:['3: Takwim disediakan, mendapat kelulusan & aktiviti dilaksanakan ikut perancangan','2: Takwim disediakan & mendapat kelulusan tetapi aktiviti tidak ikut perancangan','1: Takwim disediakan tetapi tidak mendapat kelulusan pengurusan'], nota:''},
+
+  // ─── SKOP BPN ───
+  {id:'BPN-01', kod:'BPNA01', skop:'BPN', perkara:'Pembangunan item penilaian mematuhi Assessment Table (AT) dan Jadual Spesifikasi Ujian (JSU) dalam maklumat kursus (Course Information)', pemantau:'Ainiezea (Unit Peperiksaan-En Hazizul)', pic:'KPro/Ketua Kursus/Pensyarah (JKA,JKE,JKM,JP,JPH,JPA,JMSK,JSKK)', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Assessment table','JSU/CIST/CAT','1 sampel kursus setiap program (soalan penilaian ikut AT & JSU)','Set item PB/PKK yang telah disahkan'], rubrik:['3: Semua ikut AT/JSU/FEIST','2: Sebahagian ikut','1: Tiada ikut'], nota:'Data Sesi 2 2025/2026'},
+  {id:'BPN-02', kod:'BPNA02', skop:'BPN', perkara:'KPro/Ketua Kursus/Penyelaras Kursus menerangkan proses semakan, pemurnian dan pengesahan item penilaian (PA dan PB)', pemantau:'En Zulhasnan (Auditor)', pic:'KPro/Ketua Kursus/Ketua Unit/Penyelaras Kursus', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'temubual', status:'temubual', skor:null, bukti:['Borang Penilaian Temu Bual PeNA (Skop Peperiksaan & Penilaian)','Koleksi Soalan Temu bual PeNA'], rubrik:['3: Semua boleh jelaskan','2: Sebahagian boleh jelaskan','1: Tiada boleh jelaskan'], nota:'Panel: Item penilaian tidak dimuat naik untuk dibuat semakan. CQI: telah dimuat naik pada 8 DEC 2025'},
+  {id:'BPN-03', kod:'BPNB01', skop:'BPN', perkara:'Pensyarah menerangkan tafsiran dan pelaksanaan pentaksiran formatif dan sumatif', pemantau:'En Zulhasnan (Auditor)', pic:'KPro/Ketua Kursus/Penyelaras Kursus', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'temubual', status:'temubual', skor:null, bukti:['Penerangan daripada responden (Temubual)','Rancangan Mengajar (catatan refleksi)','Borang Penilaian Temu Bual PeNA (Skop Peperiksaan & Penilaian)'], rubrik:['3: Semua responden boleh menerangkan tafsiran & pelaksanaan pentaksiran formatif dan sumatif','2: Sebahagian responden boleh menerangkan','1: Tiada responden boleh menerangkan'], nota:''},
+  {id:'BPN-04', kod:'BPNB02', skop:'BPN', perkara:'Pelaksanaan dan perekodan moderasi mengikut garis panduan berkuatkuasa', pemantau:'Ainiezea (Unit Peperiksaan-En Hazizul)', pic:'KPro/Ketua Kursus/Penyelaras Kursus', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Borang moderasi','Laporan moderasi','Memo lantikan pelaksanaan moderasi'], rubrik:['3: Semua responden boleh menerangkan proses pelaksanaan moderasi bersama dengan dokumen lengkap','2: Sebahagian boleh menerangkan dengan dokumen lengkap','1: Tiada boleh menerangkan'], nota:'Data Sesi 2 2025/2026'},
+  {id:'BPN-05', kod:'BPNB03', skop:'BPN', perkara:'Pensyarah memahami dan menunjukkan bukti pelaksanaan Dublin Attributes (DK/DP/NA – diploma) dan Sydney Attributes (SK/SP/TA – sarjana muda) dalam PdP dan penilaian', pemantau:'En Zulhasnan (Auditor)', pic:'KPro/Ketua Kursus/Penyelaras Kursus', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'temubual', status:'temubual', skor:null, bukti:['Pernyataan atribut dalam JSU (bagi program bawah akreditasi ETAC/EAC)','Borang Penilaian Temu Bual PeNA (Skop Peperiksaan & Penilaian)'], rubrik:['3: Semua pensyarah faham & boleh tunjuk elemen DK/DP/NA','2: Sebahagian pensyarah faham & boleh tunjuk elemen','1: Tiada pensyarah faham'], nota:''},
+  {id:'BPN-06', kod:'BPNC01', skop:'BPN', perkara:'Pengumpulan sampel jawapan bagi pentaksiran berterusan pelajar', pemantau:'Ainiezea', pic:'KPro/Ketua Kursus/Penyelaras Kursus', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Rekod markah','eFPK soalan & sampel jawapan 1T, 1S, 1R (1 kursus)'], rubrik:['3: SEMUA sampel pentaksiran dikumpulkan','2: SEBAHAGIAN pentaksiran dikumpulkan','1: TIADA sampel jawapan bagi pentaksiran berterusan pelajar dikumpulkan'], nota:'Data Sesi 2 2025/2026'},
+  {id:'BPN-07', kod:'BPNC02', skop:'BPN', perkara:'Pemakluman keputusan pentaksiran berterusan kepada pelajar supaya pelajar dapat meningkatkan prestasi pembelajaran', pemantau:'Ainiezea (Unit Peperiksaan-En Hazizul)', pic:'KJ/KPro/KK/Penyelaras Kursus', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Memo pemakluman','Bukti pelaksanaan (iExam/SPMP/iPUO)'], rubrik:['3: SEMUA pensyarah membuat pemakluman keputusan pentaksiran berterusan kepada pelajar','2: SEBAHAGIAN pensyarah membuat pemakluman','1: TIADA pemakluman keputusan pentaksiran berterusan kepada pelajar'], nota:'Tindakan: Unit Peperiksaan dan unit kualiti perlu membuat hebahan berkaitan status pamer markah di SPMP'},
+  {id:'BPN-08', kod:'BPNC03', skop:'BPN', perkara:'Pelaporan analisis hasil pembelajaran dan cadangan CQI penilaian kursus dan program (CORR & PLORR) disediakan', pemantau:'Ainiezea', pic:'Ketua Program/Ketua Kursus/Pensyarah kursus', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Laporan CORR','Laporan CQI Kursus','Laporan PLORR','Laporan CQI Program'], rubrik:['3: Semua program & kursus buat pelaporan analisis hasil pembelajaran serta cadangan CQI','2: Sebahagian program & kursus buat pelaporan dan cadangan CQI','1: Tiada pelaporan analisis atau cadangan CQI dibuat'], nota:'Bagi sesi 2 2025/2026'},
+  {id:'BPN-09', kod:'BPNC04', skop:'BPN', perkara:'Keselamatan dokumen dan rekod penilaian mematuhi garis panduan berkuatkuasa', pemantau:'Ainiezea (Unit Peperiksaan-En Hazizul)', pic:'Unit Peperiksaan', jabatan:['JKA','JKE','JKM','JP','JPH','JPA','JMSK','JSKK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Rekod penggunaan bilik cetak','Rekod penggunaan bilik kebal','Gambar bilik kebal'], rubrik:['3: Garis panduan keselamatan dokumen, rekod penilaian & fasiliti dipatuhi sepenuhnya','2: Garis panduan tidak dipatuhi sepenuhnya','1: Garis panduan tidak dipatuhi langsung'], nota:'Data Sesi 2 2025/2026'},
+
+  // ─── SKOP BGK ───
+  {id:'BGK-01', kod:'BGKA01', skop:'BGK', perkara:'Institusi mempunyai jawatankuasa jaminan kualiti yang dikemaskini, dipamerkan serta mempunyai terma rujukan', pemantau:'Tuan Rakiza (Pn Kamiliah-UJK)', pic:'Pengarah/Ketua Unit Jaminan Kualiti – Pn Kamiliah', jabatan:['UJK'], kaedah:'dokumen', status:'lengkap', skor:3.0, bukti:['Carta organisasi yang dikemaskini','Fungsi unit','Lantikan & terma syarat'], rubrik:['3: Institusi MEMPUNYAI jawatankuasa jaminan kualiti yang DIKEMASKINI dan dipamerkan serta mempunyai terma rujukan','2: Institusi MEMPUNYAI jawatankuasa TETAPI TIDAK dikemaskini/dipamerkan atau TIADA terma rujukan','1: Institusi TIDAK MEMPUNYAI jawatankuasa jaminan kualiti'], nota:'Data Sesi 2 2025/2026 & terkini'},
+  {id:'BGK-02', kod:'BGKA02', skop:'BGK', perkara:'Jawatankuasa jaminan kualiti mempunyai perancangan, melaksanakan pemantauan dan menyediakan laporan pelaksanaan aktiviti yang disahkan', pemantau:'Tuan Rakiza (Pn Kamiliah-UJK)', pic:'Ketua Unit Jaminan Kualiti – Pn Kamiliah', jabatan:['UJK'], kaedah:'dokumen', status:'lengkap', skor:3.0, bukti:['Takwim Perancangan 2025/26 yang disahkan','Laporan pelaksanaan takwim UJK 2025/26 yang telah disahkan','Bukti pelaksanaan','Takwim perancangan 2026 yang telah disahkan'], rubrik:['3: Jawatankuasa jaminan kualiti MEMPUNYAI perancangan, pemantauan dan pelaporan pelaksanaan aktiviti yang disahkan','2: Mempunyai perancangan TETAPI TIADA pelaksanaan/pelaporan yang disahkan','1: TIDAK MEMPUNYAI perancangan'], nota:''},
+  {id:'BGK-03', kod:'BGKA03', skop:'BGK', perkara:'Institusi mempunyai mekanisme semakan semula pengurusan yang mempunyai agenda merangkumi aspek akademik dan sokongan akademik (KSP)', pemantau:'Tuan Rakiza (Pn Kamiliah-UJK)', pic:'Ketua Unit Jaminan Kualiti – Pn Kamiliah', jabatan:['UJK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Memo MKSP','Minit & maklumbalas MKSP','Laporan KSP'], rubrik:['3: Institusi MEMPUNYAI mekanisme semakan semula pengurusan dengan agenda yang merangkumi aspek akademik dan sokongan akademik','2: MEMPUNYAI mekanisme TETAPI MEMPUNYAI SEBAHAGIAN agenda','1: TIDAK MEMPUNYAI mekanisme semakan semula pengurusan'], nota:''},
+  {id:'BGK-04', kod:'BGKB01', skop:'BGK', perkara:'Institusi mempunyai Jawatankuasa audit dalaman serta mempunyai terma rujukan', pemantau:'Tuan Rakiza (Pn Wan Norazah-Ketua Auditor)', pic:'Ketua Auditor – Pn Wan Norazah', jabatan:['UJK'], kaedah:'dokumen', status:'lengkap', skor:3.0, bukti:['Carta organisasi audit yang terkini dan telah disahkan','Surat lantikan auditor','Terma dan syarat'], rubrik:['3: Institusi MEMPUNYAI Jawatankuasa Audit Dalaman dan terma rujukan','2: Institusi MEMPUNYAI Jawatankuasa Audit Dalaman TETAPI TIADA terma rujukan','1: Institusi TIDAK MEMPUNYAI Jawatankuasa Audit Dalaman'], nota:''},
+  {id:'BGK-05', kod:'BGKB02', skop:'BGK', perkara:'Institusi mempunyai dokumen manual kualiti/SOP atau arahan/ketetapan berkaitan jaminan kualiti yang disahkan dan disebarluas', pemantau:'Tuan Rakiza (Pn Kamiliah-UJK)', pic:'Ketua Unit Jaminan Kualiti – Pn Kamiliah', jabatan:['UJK'], kaedah:'dokumen', status:'lengkap', skor:3.0, bukti:['Senarai prosedur kualiti yang disahkan','Garis Panduan dalaman'], rubrik:['3: Institusi mempunyai dokumen jaminan kualiti (manual/SOP/arahan) disahkan pengurusan dan disebarluas','2: Mempunyai dokumen tetapi tidak disahkan pengurusan atau tidak disebar luas','1: Tiada dokumen jaminan kualiti'], nota:''},
+  {id:'BGK-06', kod:'BGKB03', skop:'BGK', perkara:'Institusi mempunyai sistem penyimpanan dokumen akreditasi dan melaksanakan kaedah kawalan dalaman', pemantau:'Suzieyani (Pn Kamiliah & Pn Masliza)', pic:'Ketua Penyelaras Akreditasi – Pn Kamiliah & Pn Masliza', jabatan:['UJK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Prosedur penggunaan platform','Memo arahan penggunaan'], rubrik:['3: Institusi MEMPUNYAI sistem penyimpanan dokumen akreditasi dan MELAKSANAKAN kaedah kawalan dalaman','2: MEMPUNYAI penyimpanan, TETAPI TIADA kaedah kawalan dalaman','1: TIDAK MEMPUNYAI sistem penyimpanan dan kaedah kawalan dalaman'], nota:''},
+  {id:'BGK-07', kod:'BGKB04', skop:'BGK', perkara:'Institusi melaksanakan dan menyediakan laporan audit kualiti dalaman berkaitan akademik', pemantau:'Suzieyani (Pn Wan Norazah-Ketua Auditor)', pic:'Ketua Auditor – Pn Wan Norazah', jabatan:['UJK'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Memo audit','Memo lantikan auditor','Laporan audit dalaman','Takwim Perancangan audit dalaman'], rubrik:['3: Institusi MELAKSANAKAN dan MENYEDIAKAN laporan audit dalaman berkaitan akademik','2: Institusi MELAKSANAKAN audit TETAPI TIADA laporan','1: Institusi TIDAK MELAKSANAKAN audit kualiti dalaman'], nota:''},
+  {id:'BGK-08', kod:'BGKB05', skop:'BGK', perkara:'Institusi melaksanakan dan menyediakan laporan audit kualiti luaran berkaitan akademik (SIRIM/EE) dalam tempoh yang ditetapkan oleh badan akreditasi', pemantau:'Suzieyani (Pn Masliza)', pic:'Ketua Penyelaras Akreditasi – Pn Masliza', jabatan:['UJK','JKA','JKE','JKM','JP','JPH'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Memo makluman audit SIRIM','Laporan audit SIRIM','Surat panggilan EE','Laporan dan maklumbalas EE'], rubrik:['3: Institusi MELAKSANAKAN dan MENYEDIAKAN laporan audit kualiti luaran berkaitan akademik dalam tempoh masa','2: MELAKSANAKAN audit TETAPI TIADA laporan','1: Institusi TIDAK MELAKSANAKAN audit kualiti luaran'], nota:''},
+  {id:'BGK-09', kod:'BGKC01', skop:'BGK', perkara:'Program menerima dan mempamerkan salinan Sijil Perakuan Akreditasi di lokasi yang ditetapkan dalam syarat akreditasi', pemantau:'Suzieyani (Pn Masliza)', pic:'Ketua Penyelaras Akreditasi – Pn Masliza', jabatan:['JKA','JKE','JKM','JP','JPH'], kaedah:'dokumen', status:'dalam_tindakan', skor:null, bukti:['Sijil akreditasi','Gambar di tempat pameran'], rubrik:['3: Semua program menerima dan mempamerkan salinan Sijil Perakuan Akreditasi','2: Semua menerima sijil, tetapi hanya sebahagian mempamerkan','1: Program menerima sijil tetapi tidak mempamerkan'], nota:''},
+  {id:'BGK-10', kod:'BGKD01', skop:'BGK', perkara:'Institusi membentangkan perancangan pelaksanaan CQI sebelum dan selepas dilakukan; laporan penuh CQI disahkan oleh pengurusan tertinggi', pemantau:'Tuan Rakiza (Pn Kamiliah-UJK)', pic:'Ketua UJK – Pn Kamiliah; KPro JKA, JKE, JKM, JP, JPH, JPA, JMSK', jabatan:['UJK','JKA','JKE','JKM','JP','JPH','JPA','JMSK'], kaedah:'dokumen', status:'belum_serah', skor:null, bukti:['Laporan CQI institusi bagi tahun 2025/26'], rubrik:['3: Institusi MEMBENTANGKAN perancangan CQI sebelum dan selepas; laporan penuh DISAHKAN pengurusan','2: Institusi MELAKSANAKAN CQI tetapi TIDAK MEMBENTANGKAN perancangan','1: Institusi TIDAK MELAKSANAKAN CQI'], nota:''},
+
+  // ─── SKOP BPPI ───
+  {id:'BPPI-01', kod:'BPPIA01', skop:'BPPI', perkara:'Norma peralatan akademik program pengajian dalam EqAS atau CIDOS (70%-100% didaftarkan)', pemantau:'En Lucian', pic:'KJ/Penyelaras Aset Jabatan/KPro (JKA,JKE,JKM,JPH)', jabatan:['JKA','JKE','JKM','JPH'], kaedah:'lawatan', status:'belum_serah', skor:null, bukti:['Senarai norma peralatan bagi setiap program dari EqAS/CIDOS'], rubrik:['3: 70–100% direkodkan','2: 30–69% direkodkan','1: 0–29% direkodkan'], nota:'Data sepanjang tahun 2026 dan terkini. Semakan boleh dibuat sebelum lawatan'},
+  {id:'BPPI-02', kod:'BPPIA02', skop:'BPPI', perkara:'Peralatan akademik program pengajian di institusi mengikut norma yang ditetapkan (minimum 5 jenis per program)', pemantau:'En Lucian', pic:'KJ/Penyelaras Aset Jabatan/KPro/Penyelaras Makmal (JKA,JKE,JKM,JP,JPH,JMSK)', jabatan:['JKA','JKE','JKM','JP','JPH','JMSK'], kaedah:'lawatan', status:'belum_serah', skor:null, bukti:['Senarai peralatan di bengkel/makmal bagi setiap program','EqAS'], rubrik:['3: 70–100% cukup','2: 30–69% cukup','1: 0–29% cukup'], nota:''},
+  {id:'BPPI-03', kod:'BPPIA03', skop:'BPPI', perkara:'Kondisi peralatan akademik program pengajian (70%-100% berfungsi dengan baik)', pemantau:'En Lucian', pic:'KJ/Penyelaras Aset Jabatan/KPro/Penyelaras Makmal (JKA,JKE,JKM,JP,JPH,JMSK)', jabatan:['JKA','JKE','JKM','JP','JPH','JMSK'], kaedah:'lawatan', status:'belum_serah', skor:null, bukti:['Borang aduan kerosakan peralatan akademik yang telah disahkan oleh UPP','Jadual selenggara berkala','Kertas kerja permohonan peruntukan selenggara one off/ABM (jika perlu)','Manual/SOP (jika perlu)'], rubrik:['3: 70–100% berfungsi baik','2: 30–69% berfungsi baik','1: 0–29% berfungsi baik'], nota:''},
+  {id:'BPPI-04', kod:'BPPIA04', skop:'BPPI', perkara:'Prestasi peralatan/perisian akademik yang memerlukan kejituan bacaan dan hasil akhir (kalibrasi & lesen perisian)', pemantau:'En Lucian', pic:'KJ/Penyelaras Aset Jabatan/KPro/Penyelaras Makmal (JKA,JKE,JKM,JP,JPH,JMSK)', jabatan:['JKA','JKE','JKM','JP','JPH','JMSK'], kaedah:'lawatan', status:'belum_serah', skor:null, bukti:['Jadual kalibrasi','Sijil pengesahan oleh pihak bertauliah','Lesen perisian'], rubrik:['3: Semua program ada peralatan/perisian sah','2: Sebahagian ada','1: Tiada/kurang ada'], nota:''},
+  {id:'BPPI-05', kod:'BPPIA05', skop:'BPPI', perkara:'Keberadaan peralatan akademik di lokasi yang ditetapkan (70%-100%)', pemantau:'En Lucian', pic:'KJ/Penyelaras Aset Jabatan/KPro/Penyelaras Makmal (JKA,JKE,JKM,JP,JPH,JMSK)', jabatan:['JKA','JKE','JKM','JP','JPH','JMSK'], kaedah:'lawatan', status:'belum_serah', skor:null, bukti:['KEW.PA-7','KEW.PA-14'], rubrik:['3: 70–100% berada di lokasi ditetapkan','2: 30–69% berada di lokasi ditetapkan','1: 0–29% berada di lokasi ditetapkan'], nota:''},
+  {id:'BPPI-06', kod:'BPPIB01', skop:'BPPI', perkara:'SOP peralatan akademik dipamerkan dengan jelas di makmal/bengkel/bilik kuliah (minimum 5 jenis per program)', pemantau:'En Lucian', pic:'KJ/Ketua Penyelaras Makmal Bengkel Bilik Kuliah/KPro (JKA,JKE,JKM,JP,JPH,JMSK)', jabatan:['JKA','JKE','JKM','JP','JPH','JMSK'], kaedah:'lawatan', status:'belum_serah', skor:null, bukti:['Gambar SOP peralatan akademik dipamerkan','Manual/SOP peralatan akademik'], rubrik:['3: 70–100% peralatan ada SOP','2: 30–69% ada SOP','1: 0–29% ada SOP'], nota:''},
+  {id:'BPPI-07', kod:'BPPIC01', skop:'BPPI', perkara:'Papan tanda keselamatan (Signage Safety First) ruang akademik makmal/bengkel/bilik kuliah mengikut spesifikasi', pemantau:'En Lucian', pic:'KJ/KPro/Penyelaras Makmal/Bengkel/Bilik Kuliah (JKA,JKE,JKM,JP,JPH,JMSK)', jabatan:['JKA','JKE','JKM','JP','JPH','JMSK'], kaedah:'lawatan', status:'belum_serah', skor:null, bukti:['Nota Arahan Kerja Selamat, JKR','Arahan Teknik Jalan, JKR (ATJ2B/85)'], rubrik:['3: 70–100% ruang ada papan tanda','2: 30–69% ada papan tanda','1: 0–29% ada papan tanda'], nota:''},
+  {id:'BPPI-08', kod:'BPPIC02', skop:'BPPI', perkara:'Papan tanda KELUAR (signage EXIT) di setiap pintu keluar ruang akademik berfungsi dengan baik', pemantau:'En Lucian', pic:'KJ/KPro/Penyelaras Makmal/Bengkel/Bilik Kuliah (JKA,JKE,JKM,JP,JPH,JMSK)', jabatan:['JKA','JKE','JKM','JP','JPH','JMSK'], kaedah:'lawatan', status:'belum_serah', skor:null, bukti:['Nota Arahan Kerja Selamat, JKR'], rubrik:['3: Semua ruang ada & berfungsi','2: Sebahagian ruang ada & berfungsi','1: Tiada papan tanda/tidak berfungsi'], nota:''},
+  {id:'BPPI-09', kod:'BPPIC03', skop:'BPPI', perkara:'Penanda garisan keselamatan (lantai) ruang akademik makmal/bengkel/bilik kuliah mengikut spesifikasi (70%-100%)', pemantau:'En Lucian', pic:'KJ/KPro/Penyelaras Makmal/Bengkel/Bilik Kuliah (JKA,JKE,JKM,JP,JPH,JMSK)', jabatan:['JKA','JKE','JKM','JP','JPH','JMSK'], kaedah:'lawatan', status:'belum_serah', skor:null, bukti:['Nota Arahan Kerja Selamat, JKR'], rubrik:['3: 70–100% ruang ada garisan keselamatan','2: 30–69% ada garisan','1: 0–29% ada garisan'], nota:''},
+];
+
+// ─── Compute stats from ITEMS array ───
+function computeStats(){
+  const counts = {total:ITEMS.length, lengkap:0, dalam_tindakan:0, belum_serah:0, perlu_semak:0, temubual:0};
+  ITEMS.forEach(i=>{
+    if(i.status==='lengkap') counts.lengkap++;
+    else if(i.status==='dalam_tindakan') counts.dalam_tindakan++;
+    else if(i.status==='belum_serah') counts.belum_serah++;
+    else if(i.status==='perlu_semak') counts.perlu_semak++;
+    else if(i.status==='temubual') counts.temubual++;
+  });
+  return counts;
+}
+
+function computeScopeStats(){
+  const map={};
+  SKOP_DATA.forEach(s=>{map[s.kod]={...s,lengkap:0,dalam_tindakan:0,belum_serah:0,perlu_semak:0,temubual:0,total:0}});
+  ITEMS.forEach(i=>{
+    if(!map[i.skop]) return;
+    map[i.skop].total++;
+    map[i.skop][i.status]++;
+  });
+  return Object.values(map);
+}
+
+function computeDeptStats(){
+  const map={};
+  JABATAN_DATA.forEach(j=>{map[j.kod]={...j,items:new Set(),lengkap:0,dalam_tindakan:0,belum_serah:0}});
+  ITEMS.forEach(item=>{
+    item.jabatan.forEach(jkod=>{
+      if(!map[jkod]) return;
+      const key=item.skop+'_'+item.kod;
+      if(!map[jkod].items.has(key)){
+        map[jkod].items.add(key);
+        if(item.status==='lengkap') map[jkod].lengkap++;
+        else if(item.status==='dalam_tindakan') map[jkod].dalam_tindakan++;
+        else if(item.status==='belum_serah'||item.status==='perlu_semak'||item.status==='temubual') map[jkod].belum_serah++;
+      }
+    });
+  });
+  return Object.values(map).map(d=>({...d,total:d.items.size}));
+}
+
+// ─── Charts ───
+let charts = {};
+function initCharts(){
+  const stats = computeStats();
+  const scopeStats = computeScopeStats();
+
+  // Donut
+  const ctx1 = document.getElementById('chartDonut');
+  if(ctx1){
+    if(charts.donut) charts.donut.destroy();
+    charts.donut = new Chart(ctx1,{
+      type:'doughnut',
+      data:{
+        labels:['Lengkap','Dalam Tindakan','Belum Serah','Menunggu Semakan','Temubual'],
+        datasets:[{data:[stats.lengkap,stats.dalam_tindakan,stats.belum_serah,stats.perlu_semak,stats.temubual],
+          backgroundColor:['#16a34a','#ea580c','#dc2626','#ca8a04','#4338ca'],borderWidth:2,borderColor:'#fff'}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
+    });
+  }
+
+  // Scope bar
+  const ctx2 = document.getElementById('chartScope');
+  if(ctx2){
+    if(charts.scope) charts.scope.destroy();
+    charts.scope = new Chart(ctx2,{
+      type:'bar',
+      data:{
+        labels:scopeStats.map(s=>s.kod),
+        datasets:[
+          {label:'Lengkap',data:scopeStats.map(s=>s.lengkap),backgroundColor:'#16a34a'},
+          {label:'Dalam Tindakan',data:scopeStats.map(s=>s.dalam_tindakan),backgroundColor:'#ea580c'},
+          {label:'Belum Serah',data:scopeStats.map(s=>s.belum_serah),backgroundColor:'#dc2626'},
+          {label:'Temubual',data:scopeStats.map(s=>s.temubual),backgroundColor:'#4338ca'},
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{stepSize:2}}},
+        plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}
+    });
+  }
+
+  // Dept
+  const deptStats = computeDeptStats();
+  const ctx3 = document.getElementById('chartDept');
+  if(ctx3){
+    if(charts.dept) charts.dept.destroy();
+    charts.dept = new Chart(ctx3,{
+      type:'bar',
+      data:{
+        labels:deptStats.map(d=>d.kod),
+        datasets:[
+          {label:'Lengkap',data:deptStats.map(d=>d.lengkap),backgroundColor:'#16a34a'},
+          {label:'Dalam Tindakan',data:deptStats.map(d=>d.dalam_tindakan),backgroundColor:'#ea580c'},
+          {label:'Belum/Temubual',data:deptStats.map(d=>d.belum_serah),backgroundColor:'#dc2626'},
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',scales:{x:{stacked:true,beginAtZero:true},y:{stacked:true}},
+        plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}
+    });
+  }
+
+  // Method
+  const methods={dokumen:0,temubual:0,lawatan:0};
+  ITEMS.forEach(i=>methods[i.kaedah]++);
+  const ctx4 = document.getElementById('chartMethod');
+  if(ctx4){
+    if(charts.method) charts.method.destroy();
+    charts.method = new Chart(ctx4,{
+      type:'pie',
+      data:{
+        labels:['Dokumen','Temubual','Lawatan Fizikal'],
+        datasets:[{data:[methods.dokumen,methods.temubual,methods.lawatan],
+          backgroundColor:['#0d9488','#4338ca','#854d0e'],borderWidth:2,borderColor:'#fff'}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
+    });
+  }
+}
+
+function initReportCharts(){
+  const scopeStats = computeScopeStats();
+  const ctx1 = document.getElementById('chartReport1');
+  if(ctx1){
+    if(charts.rep1) charts.rep1.destroy();
+    charts.rep1 = new Chart(ctx1,{
+      type:'bar',
+      data:{
+        labels:scopeStats.map(s=>s.kod),
+        datasets:[
+          {label:'Lengkap',data:scopeStats.map(s=>s.lengkap),backgroundColor:'#16a34a'},
+          {label:'Dalam Tindakan',data:scopeStats.map(s=>s.dalam_tindakan),backgroundColor:'#ea580c'},
+          {label:'Belum Serah',data:scopeStats.map(s=>s.belum_serah),backgroundColor:'#dc2626'},
+          {label:'Temubual',data:scopeStats.map(s=>s.temubual),backgroundColor:'#4338ca'},
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}},
+        plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}
+    });
+  }
+  const ctx2 = document.getElementById('chartReport2');
+  if(ctx2){
+    if(charts.rep2) charts.rep2.destroy();
+    charts.rep2 = new Chart(ctx2,{
+      type:'doughnut',
+      data:{
+        labels:scopeStats.map(s=>s.kod),
+        datasets:[{data:scopeStats.map(s=>s.total),
+          backgroundColor:['#1d4ed8','#7e22ce','#9a3412','#166534','#854d0e'],
+          borderWidth:2,borderColor:'#fff'}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}
+    });
+  }
+}
+
+// ─── Update stat cards ───
+function updateStatCards(){
+  const s = computeStats();
+  document.getElementById('totalItems').textContent = s.total;
+  document.getElementById('totalLengkap').textContent = s.lengkap;
+  document.getElementById('pctLengkap').textContent = Math.round(s.lengkap/s.total*100)+'% selesai';
+  document.getElementById('totalTindakan').textContent = s.dalam_tindakan;
+  document.getElementById('totalBelum').textContent = s.belum_serah;
+  document.getElementById('totalSemak').textContent = s.perlu_semak;
+  document.getElementById('totalTemubual').textContent = s.temubual;
+}
+
+// ─── Scope Cards ───
+function renderScopeCards(){
+  const scopeStats = computeScopeStats();
+  const el = document.getElementById('scopeCards');
+  if(!el) return;
+  el.innerHTML = scopeStats.map(s=>{
+    const done = s.lengkap;
+    const total = s.total;
+    const pct = total>0?Math.round(done/total*100):0;
+    return `<div class="scope-card">
+      <div class="scope-header">
+        <div>
+          <div class="scope-code">${s.kod}</div>
+          <div class="scope-name">${s.nama}</div>
+          <div class="scope-monitor">👤 ${s.pemantau}</div>
+        </div>
+        <span class="status-badge" style="background:#eff6ff;color:#1d4ed8">${total} item</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill teal" style="width:${pct}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:8px">
+        <span>${pct}% Selesai</span><span>${done}/${total} item</span>
+      </div>
+      <div class="scope-stats">
+        <span>✅ Lengkap: <span>${s.lengkap}</span></span>
+        <span>🔄 Tindakan: <span>${s.dalam_tindakan}</span></span>
+        <span>⚠️ Belum: <span>${s.belum_serah}</span></span>
+        <span>🎤 Temubual: <span>${s.temubual}</span></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Item Table ───
+let filteredItems = [...ITEMS];
+function renderTable(items){
+  const tbody = document.getElementById('itemTableBody');
+  const info = document.getElementById('tableInfo');
+  if(!tbody) return;
+  if(items.length===0){
+    tbody.innerHTML='<tr><td colspan="8" class="no-results">Tiada item dijumpai untuk kriteria yang dipilih.</td></tr>';
+    info.textContent='0 item dijumpai';
+    return;
+  }
+  info.textContent=`${items.length} item dijumpai daripada ${ITEMS.length} item (data dari senarai semak PDF & Excel Oktober 2026)`;
+  tbody.innerHTML = items.map((item,idx)=>{
+    const statusClass = 'status-'+item.status;
+    const statusLabel = {lengkap:'Lengkap',dalam_tindakan:'Dalam Tindakan',belum_serah:'Belum Serah',perlu_semak:'Menunggu Semakan',temubual:'Temubual'}[item.status]||item.status;
+    const kaedahLabel = {dokumen:'📄 Dokumen',temubual:'🎤 Temubual',lawatan:'🔍 Lawatan'}[item.kaedah]||item.kaedah;
+    const skor = item.skor!==null?`<span style="font-weight:700;color:var(--teal)">${item.skor}</span>`:`<span style="color:var(--muted)">–</span>`;
+    return `<tr>
+      <td><span class="item-code">${item.kod}</span><br><small class="text-muted">Skor: ${skor}/3</small></td>
+      <td><span class="scope-tag tag-${item.skop}">${item.skop}</span></td>
+      <td style="max-width:300px"><div style="font-size:12px;line-height:1.4">${item.perkara.substring(0,120)}${item.perkara.length>120?'…':''}</div></td>
+      <td style="font-size:12px">${item.pemantau}</td>
+      <td style="font-size:11px">${item.jabatan.slice(0,5).join(', ')}${item.jabatan.length>5?` +${item.jabatan.length-5}`:''}</td>
+      <td style="font-size:12px">${kaedahLabel}</td>
+      <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+      <td><button class="expand-btn" onclick="toggleDetail('detail-${idx}')">▸ Lihat</button></td>
+    </tr>
+    <tr class="detail-row" id="detail-${idx}">
+      <td colspan="8" class="detail-cell">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div class="detail-section">
+              <div class="detail-label">Perkara Penuh</div>
+              <div style="font-size:12px;line-height:1.5">${item.perkara}</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Keperluan Bukti/Eviden</div>
+              <ul class="evidence-list">${item.bukti.map(b=>`<li>${b}</li>`).join('')}</ul>
+            </div>
+            ${item.nota?`<div class="detail-section"><div class="detail-label">Nota/CQI</div><div style="font-size:11px;color:var(--orange);background:var(--orange-dim);padding:8px 10px;border-radius:6px">${item.nota}</div></div>`:''}
+          </div>
+          <div>
+            <div class="detail-section">
+              <div class="detail-label">Rubrik Penilaian</div>
+              <ul class="rubrik-list">${item.rubrik.map(r=>`<li>${r}</li>`).join('')}</ul>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">PIC / Tindakan</div>
+              <div style="font-size:12px">${item.pic}</div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-label">Kaedah Penilaian</div>
+              <div style="font-size:12px">${kaedahLabel}</div>
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleDetail(id){
+  const row = document.getElementById(id);
+  const btn = row.previousElementSibling.querySelector('.expand-btn');
+  if(row.classList.contains('open')){row.classList.remove('open');btn.textContent='▸ Lihat';}
+  else{row.classList.add('open');btn.textContent='▾ Tutup';}
+}
+
+function applyFilters(){
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const skop   = document.getElementById('filterSkop').value;
+  const status = document.getElementById('filterStatus').value;
+  const jab    = document.getElementById('filterJabatan').value;
+  filteredItems = ITEMS.filter(item=>{
+    if(skop   && item.skop!==skop) return false;
+    if(status && item.status!==status) return false;
+    if(jab    && !item.jabatan.includes(jab)) return false;
+    if(search && !item.kod.toLowerCase().includes(search) && !item.perkara.toLowerCase().includes(search) && !item.pic.toLowerCase().includes(search) && !item.pemantau.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  renderTable(filteredItems);
+}
+
+function resetFilters(){
+  document.getElementById('searchInput').value='';
+  document.getElementById('filterSkop').value='';
+  document.getElementById('filterStatus').value='';
+  document.getElementById('filterJabatan').value='';
+  filteredItems=[...ITEMS];
+  renderTable(filteredItems);
+}
+
+// ─── PIC View ───
+function loadPicView(){
+  const jab = document.getElementById('picSelector').value;
+  const myItems = ITEMS.filter(i=>i.jabatan.includes(jab));
+  const el = document.getElementById('picTaskList');
+  if(!el) return;
+  const done=myItems.filter(i=>i.status==='lengkap').length;
+  el.innerHTML=`
+  <div class="stat-grid" style="margin-bottom:16px">
+    <div class="stat-card blue"><div class="stat-label">Tugasan Saya</div><div class="stat-value">${myItems.length}</div><div class="stat-sub">item berkaitan dengan ${jab}</div></div>
+    <div class="stat-card green"><div class="stat-label">Selesai</div><div class="stat-value">${done}</div><div class="stat-sub">${Math.round(done/myItems.length*100)}% siap</div></div>
+    <div class="stat-card red"><div class="stat-label">Belum Serah</div><div class="stat-value">${myItems.filter(i=>i.status==='belum_serah').length}</div><div class="stat-sub">perlu tindakan</div></div>
+  </div>
+  <div class="table-wrap">
+    <div class="table-info">${myItems.length} item berkaitan dengan jabatan/unit <strong>${jab}</strong></div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Kod</th><th>Skop</th><th>Perkara</th><th>Pemantau</th><th>Kaedah</th><th>Status</th></tr></thead>
+      <tbody>${myItems.map(item=>{
+        const sl={lengkap:'status-lengkap',dalam_tindakan:'status-dalam_tindakan',belum_serah:'status-belum_serah',perlu_semak:'status-perlu_semak',temubual:'status-temubual'}[item.status];
+        const ll={lengkap:'Lengkap',dalam_tindakan:'Dalam Tindakan',belum_serah:'Belum Serah',perlu_semak:'Menunggu Semakan',temubual:'Temubual'}[item.status];
+        const kl={dokumen:'📄 Dokumen',temubual:'🎤 Temubual',lawatan:'🔍 Lawatan'}[item.kaedah];
+        return `<tr>
+          <td><span class="item-code">${item.kod}</span></td>
+          <td><span class="scope-tag tag-${item.skop}">${item.skop}</span></td>
+          <td style="font-size:12px;max-width:280px">${item.perkara.substring(0,100)}…</td>
+          <td style="font-size:12px">${item.pemantau}</td>
+          <td style="font-size:12px">${kl}</td>
+          <td><span class="status-badge ${sl}">${ll}</span></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>
+  </div>`;
+}
+
+// ─── Dept Table in Report ───
+function renderDeptTable(){
+  const deptStats = computeDeptStats();
+  const el = document.getElementById('deptTableBody');
+  if(!el) return;
+  el.innerHTML = deptStats.map(d=>{
+    const pct = d.total>0?Math.round(d.lengkap/d.total*100):0;
+    return `<tr>
+      <td>${d.kod}</td>
+      <td>${d.nama}</td>
+      <td>${d.total}</td>
+      <td style="color:var(--green);font-weight:600">${d.lengkap}</td>
+      <td style="color:var(--orange);font-weight:600">${d.dalam_tindakan}</td>
+      <td style="color:var(--red);font-weight:600">${d.belum_serah}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="pct-bar" style="flex:1"><div class="pct-fill" style="width:${pct}%"></div></div>
+          <span style="font-size:12px;font-weight:600;min-width:32px">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderReportStats(){
+  const stats = computeStats();
+  const el = document.getElementById('reportStats');
+  if(!el) return;
+  const pct = Math.round(stats.lengkap/stats.total*100);
+  el.innerHTML=`
+    <div class="report-card"><div class="stat-label">Jumlah Item Keseluruhan</div><div class="stat-value">${stats.total}</div><div class="stat-sub">Merentas 5 skop penilaian</div></div>
+    <div class="report-card"><div class="stat-label">Kadar Penyiapan</div><div class="stat-value" style="color:var(--teal)">${pct}%</div><div class="progress-bar" style="margin-top:8px"><div class="progress-fill teal" style="width:${pct}%"></div></div></div>
+    <div class="report-card"><div class="stat-label">Item Lengkap</div><div class="stat-value" style="color:var(--green)">${stats.lengkap}</div><div class="stat-sub">Telah disahkan oleh pemantau</div></div>
+    <div class="report-card"><div class="stat-label">Perlu Tindakan Segera</div><div class="stat-value" style="color:var(--red)">${stats.belum_serah}</div><div class="stat-sub">Item belum serah dokumen</div></div>
+  `;
+}
+
+// ─── Review workflow ───
+function submitReview(action){
+  const skor = document.getElementById('skorInput').value;
+  const komen = document.getElementById('reviewComment').value;
+  const msg = document.getElementById('reviewResult');
+  if(action==='pembetulan'&&!komen){
+    msg.style.display='block';msg.style.background='#fee2e2';msg.style.color='#dc2626';
+    msg.textContent='⚠ Sila tulis ulasan sebelum menghantar permintaan pembetulan.';return;
+  }
+  const labels={lulus:'✅ Keputusan: LULUS',pembetulan:'✎ Keputusan: PERLU PEMBETULAN — Notifikasi dihantar kepada PIC',tolak:'✕ Keputusan: DITOLAK — Notifikasi dihantar kepada PIC'};
+  const colors={lulus:'#dcfce7',pembetulan:'#fef9c3',tolak:'#fee2e2'};
+  const tcolors={lulus:'#166534',pembetulan:'#854d0e',tolak:'#dc2626'};
+  msg.style.display='block';
+  msg.style.background=colors[action];msg.style.color=tcolors[action];
+  msg.textContent=labels[action]+(skor?` (Skor: ${skor}/3)`:'')+' [DEMO – data tidak disimpan dalam sistem sebenar]';
+}
+
+// ─── Navigation ───
+function showPage(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  const titles={dashboard:'Dashboard Utama',skop:'Skop Penilaian',senarai:'Senarai Item PeNA',tugasan:'Tugasan PIC',penghantaran:'Pengurusan Dokumen',semakan:'Semakan Eviden',laporan:'Laporan & Analisis',pengguna:'Tetapan Pengguna'};
+  document.getElementById('pageTitle').textContent=titles[id]||id;
+  closeSidebar();
+  // Lazy init charts on navigate
+  if(id==='dashboard'){initCharts();updateStatCards();}
+  if(id==='skop') renderScopeCards();
+  if(id==='senarai'){renderTable(ITEMS);filteredItems=[...ITEMS];}
+  if(id==='tugasan') loadPicView();
+  if(id==='laporan'){renderReportStats();renderDeptTable();setTimeout(initReportCharts,50);}
+}
+
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ─── INIT ───
+document.addEventListener('DOMContentLoaded',()=>{
+  updateStatCards();
+  setTimeout(initCharts, 100);
+});
+</script>
+</body>
+</html>
